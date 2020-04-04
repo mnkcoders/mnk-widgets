@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-final class CodersContactWidget extends \CODERS\WidgetBase {
+final class CodersContactWidget extends \CODERS\Widgets\WidgetBase {
 
     const WHATSAPP_API = 'https://api.whatsapp.com/send';
     

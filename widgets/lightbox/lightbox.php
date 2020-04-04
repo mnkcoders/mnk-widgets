@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersLightboxWidget extends \CODERS\WidgetBase{
+class CodersLightboxWidget extends \CODERS\Widgets\WidgetBase{
     /**
      * @return string Título
      */

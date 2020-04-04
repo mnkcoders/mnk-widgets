@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersButtonWidget extends \CODERS\WidgetBase{
+class CodersButtonWidget extends \CODERS\Widgets\WidgetBase{
     
     const TYPE_BUTTON = 'button';
     const TYPE_LINK = 'link';

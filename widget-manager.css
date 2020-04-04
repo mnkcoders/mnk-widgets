@@ -1,0 +1,23 @@
+/* widget manager styles */
+#coder-widget-manager .widget-list .inline{
+    display: inline-block;
+    margin: 0 20px 20px 0;
+}
+#coder-widget-manager .widget-list .widget button{
+    min-width: 180px;
+    padding: 10px 20px;
+    position: relative;
+}
+
+#coder-widget-manager .widget-list .widget button:before{
+    font-family: 'dashicons';
+    content: '';
+    position: absolute;
+    top: 4px; left: 4px;
+    font-size: 15px;
+    line-height: 15px;
+    color: rgba(0,0,0,0.05);
+}
+#coder-widget-manager .widget-list .widget button.active:before{ content: '\f485'; color: rgba(0,0,0,0.75); }
+#coder-widget-manager .widget-list .widget button.inactive:before{ content: '\f106'; color: rgba(0,0,0,0.15); }
+#coder-widget-manager .widget-list .widget button.disabled:before{ content: '\f348'; }

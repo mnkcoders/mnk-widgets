@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-final class CodersSpacerWidget extends \CODERS\WidgetBase {
+final class CodersSpacerWidget extends \CODERS\Widgets\WidgetBase {
     
     const ORIENTATION_HORIZONTAL = 'horizontal';
     const ORIENTATION_VERTICAL = 'vertical';

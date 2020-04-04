@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersLogoWidget extends \CODERS\WidgetBase {
+class CodersLogoWidget extends \CODERS\Widgets\WidgetBase {
     
     const SIZE_FULL = 'full';
     const SIZE_LARGE = 'large';

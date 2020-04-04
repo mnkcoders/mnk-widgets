@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersBreadcrumbWidget extends \CODERS\WidgetBase{
+class CodersBreadcrumbWidget extends \CODERS\Widgets\WidgetBase{
     /**
      * @return string Título
      */

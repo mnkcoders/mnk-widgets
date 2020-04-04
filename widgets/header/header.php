@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-final class CodersHeaderWidget extends \CODERS\WidgetBase {
+final class CodersHeaderWidget extends \CODERS\Widgets\WidgetBase {
     
     const TITLE_H1 = 'h1';
     const TITLE_H2 = 'h2';

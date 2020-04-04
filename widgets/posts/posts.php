@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-05-15
  */
-class CodersPostsWidget extends \CODERS\WidgetBase{
+class CodersPostsWidget extends \CODERS\Widgets\WidgetBase{
     
     const POST_IMAGE_THUMBNAIL = 'thumbnail';
     const POST_IMAGE_MEDIUM = 'medium';

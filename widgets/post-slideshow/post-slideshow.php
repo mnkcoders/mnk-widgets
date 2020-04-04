@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-05-15
  */
-class CodersPostSlideshowWidget extends \CODERS\WidgetBase{
+class CodersPostSlideshowWidget extends \CODERS\Widgets\WidgetBase{
     
     const ORIENTATION_HORIZONTAL = 'horizontal';
     

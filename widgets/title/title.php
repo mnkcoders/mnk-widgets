@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-final class CodersTitleWidget extends \CODERS\WidgetBase {
+final class CodersTitleWidget extends \CODERS\Widgets\WidgetBase {
     /**
      * @return string Título
      */

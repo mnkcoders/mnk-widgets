@@ -1,18 +1,28 @@
-<?php
+<?php namespace CODERS\Widgets;
 /*******************************************************************************
- * Plugin Name: Coders Widget Pack
- * Plugin URI: https://mnkcoders.com
- * Description: Easy Widget Deploy
+ * Plugin Name: MNK Widgets
+ * Plugin URI: https://coderstheme.org
+ * Description: Faster Widget Developement
  * Version: 1.0.0
  * Author: Coder#1
  * Author URI: 
  * License: GPLv2 or later
- * Text Domain: coders_widget_pack
- * Class: CodersWidgetBase
+ * Text Domain: coders_widgets
+ * Class: \CODERS\Widgets\WidgetBase
  * 
- * @author Coder#1
+ * @author Jaume Llopis
  ******************************************************************************/
-abstract class CodersWidgetBase extends \WP_Widget {
+defined('ABSPATH') or die;
+
+/**
+ * Widget base para plantillas de widget
+ * @version 1.0.1
+ * Agregada funcionalidad para registrar scripts y css en admin y frontend fácilmente
+ * 
+ * utilizar métodos registerAdmin*^y registerWidget*
+ * 
+ */
+abstract class WidgetBase extends \WP_Widget {
 
     const TYPE_CHECKBOX = 'checkbox';
     const TYPE_MEDIA = 'media';
@@ -67,61 +77,32 @@ abstract class CodersWidgetBase extends \WP_Widget {
 
         //registrar estilos y scripts automáticamente
         if( is_admin() ){
-            add_action('admin_enqueue_scripts', array( $this , 'initAdminAssets' ) );
+            $this->initAdminAssets();
         }
         else{
-            add_action('wp_enqueue_scripts', array( $this , 'initWidgetAssets' ) );
+            $this->initWidgetAssets();
         }
     }
     /**
-     * ID del widget generado para el constructor
-     * @return string
+     * @param string $name
+     * @param array $arguments
+     * @return boolean| mixed
      */
-    protected static final function defineWidgetId(){
+    public function __call($name, $arguments) {
         
-        return sprintf('coders-%s-widget' ,self::getWidgetId() );
-    }
-    /**
-     * Sobrecargar con la clase del widget
-     * @return string
-     */
-    protected static function defineWidgetClass(){
+        $callback = sprintf('run%sCallback',$name);
         
-        return preg_replace('/_/', '-', self::defineWidgetId());
+        return (method_exists($this, $callback)) ?
+                $this->$callback( $arguments ) :
+                FALSE;
     }
     /**
-     * Sobrescribir con el título del widget
-     * @return string
+     * @param string $name
+     * @return mixed
      */
-    public static function defineWidgetTitle(){
+    public function __get($name) {
         
-        return get_class( );
-    }
-    /**
-     * Sobrecargar con la descripción del widget
-     * @return string
-     */
-    public static function defineWidgetDescription(){
-        
-        return __( 'A new Coders Widget' ,'coders_widget_pack');
-    }
-    /**
-     * Sobrecargar con las opciones del widget
-     * @return array
-     */
-    protected function defineWidgetOptions(){
-
-        return array( 'description' => $this->defineWidgetDescription( ) );
-    }
-    /**
-     * Inicializa los parámetros del widget
-     * @return \CODERS\WidgetBase
-     */
-    protected function registerWidgetInputs(){
-
-        return $this->inputRegister( 'title',
-                self::TYPE_TEXT, '',
-                __('T&iacute;tulo','coders_widget_pack'));
+        return $name;
     }
     /**
      * <custom />
@@ -159,6 +140,127 @@ abstract class CodersWidgetBase extends \WP_Widget {
         }
         
         return sprintf('<%s %s />' , $TAG , implode(' ', $serialized ) );
+    }
+    /**
+     * ID del widget generado para el constructor
+     * @return string
+     */
+    protected static final function defineWidgetId(){
+        
+        return sprintf('coders-%s-widget' ,self::getWidgetId() );
+    }
+    /**
+     * Sobrecargar con la clase del widget
+     * @return string
+     */
+    protected static function defineWidgetClass(){
+        
+        return preg_replace('/_/', '-', self::defineWidgetId());
+    }
+    /**
+     * Sobrescribir con el título del widget
+     * @return string
+     */
+    public static function defineWidgetTitle(){
+        
+        return get_class( );
+    }
+    /**
+     * Sobrecargar con la descripción del widget
+     * @return string
+     */
+    public static function defineWidgetDescription(){
+        
+        return __( 'Un widget de CODERS' ,'coders_widget_pack');
+    }
+    /**
+     * Sobrecargar con las opciones del widget
+     * @return array
+     */
+    protected function defineWidgetOptions(){
+
+        return array( 'description' => $this->defineWidgetDescription( ) );
+    }
+    /**
+     * Inicializa los parámetros del widget
+     * @return \CODERS\WidgetBase
+     */
+    protected function registerWidgetInputs(){
+
+        return $this->inputRegister( 'title',
+                self::TYPE_TEXT, '',
+                __('T&iacute;tulo','coders_widget_pack'));
+    }
+    /**
+     * Inicializa los assets del form de administración del widget
+     */
+    private final function initAdminAssets() {
+
+        $styles = $this->_styles[self::ASSET_TYPE_ADMIN];
+
+        $scripts = $this->_scripts[self::ASSET_TYPE_ADMIN];
+
+        add_action('admin_enqueue_scripts', function() use($styles, $scripts) {
+            foreach( $styles as $style => $deps ){
+                switch( $style ){
+                    case 'media-gallery':
+                        wp_enqueue_style(
+                            'coders-media-selector-style',
+                            $this->getAssetUrl('media-gallery.css' , false ));
+                        break;
+                    default:
+                        wp_enqueue_style(
+                            sprintf('coders-widget-%s-style',$style),
+                            $this->getAssetUrl($style.'.css'),
+                            $deps);
+                        break;
+                }
+            }
+            foreach( $scripts as $script => $deps ){
+                switch ( $script ){
+                    case 'media-gallery':
+                        //incluir las librerías de WP para el mediamanager
+                        wp_enqueue_media();
+                        wp_enqueue_script(
+                            'coders-media-selector-script',
+                            $this->getAssetUrl( 'media-gallery.js' , false ),
+                            $deps);
+                        break;
+                    default:
+                        wp_enqueue_script(
+                            sprintf('coders-widget-%s-script',$script),
+                            $this->getAssetUrl($script.'.js'),
+                            $deps);
+                        break;
+                }
+            }
+        });
+    }
+    /**
+     * Registra los assets del widget publico
+     */
+    private final function initWidgetAssets() {
+        
+        $styles = $this->_styles[self::ASSET_TYPE_WIDGET];
+
+        $scripts = $this->_scripts[self::ASSET_TYPE_WIDGET];
+
+        add_action('wp_enqueue_scripts', function() use($styles, $scripts) {
+
+            foreach( $scripts as $script => $deps ){
+                wp_enqueue_script(
+                        sprintf('coders-widget-%s-script',$script),
+                        $this->getAssetUrl($script.'.js'),
+                        $deps);
+            }
+            
+            foreach( $styles as $style => $deps ){
+                wp_enqueue_style(
+                        sprintf('coders-widget-%s-style',$style),
+                        $this->getAssetUrl($style.'.css'),
+                        $deps);
+            }
+        });
     }
     /**
      * Registra un script de cliente
@@ -209,105 +311,6 @@ abstract class CodersWidgetBase extends \WP_Widget {
         return $this;
     }
     /**
-     * @return array
-     */
-    private final function getAdminStyles(){
-        return $this->_styles[self::ASSET_TYPE_ADMIN];
-    }
-    /**
-     * @return array
-     */
-    private final function getWidgetStyles(){
-        return $this->_styles[self::ASSET_TYPE_WIDGET];
-    }
-    /**
-     * @return array
-     */
-    private final function getAdminScripts(){
-        return $this->_scripts[self::ASSET_TYPE_ADMIN];
-    }
-    /**
-     * @return array
-     */
-    private final function getWidgetScripts(){
-        return $this->_scripts[self::ASSET_TYPE_WIDGET];
-    }
-    /**
-     * Inicializa los assets del form de administración del widget
-     */
-    public final function initAdminAssets() {
-        foreach ($this->getAdminStyles() as $style => $deps) {
-            switch ($style) {
-                case 'media-gallery':
-                    wp_enqueue_style(
-                            'coders-media-selector-style',
-                            $this->assetUrl('media-gallery.css', false));
-                    break;
-                default:
-                    wp_enqueue_style(
-                            sprintf('coders-widget-%s-style', $style),
-                            $this->assetUrl($style . '.css'),
-                            $deps);
-                    break;
-            }
-        }
-        foreach ($this->getAdminScripts() as $script => $deps) {
-            switch ($script) {
-                case 'media-gallery':
-                    //incluir las librerías de WP para el mediamanager
-                    wp_enqueue_media();
-                    wp_enqueue_script(
-                            'coders-media-selector-script',
-                            $this->assetUrl('media-gallery.js', false),
-                            $deps);
-                    break;
-                default:
-                    wp_enqueue_script(
-                            sprintf('coders-widget-%s-script', $script),
-                            $this->assetUrl($script . '.js'),
-                            $deps);
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Registra los assets del widget publico
-     */
-    public final function initWidgetAssets() {
-        foreach( $this->getWidgetScripts() as $script => $deps ){
-            wp_enqueue_script(
-                    sprintf('coders-widget-%s-script',$script),
-                    $this->assetPathUrl($script.'.js'),
-                    $deps);
-        }
-        foreach( $this->getWidgetStyles() as $style => $deps ){
-            wp_enqueue_style(
-                    sprintf('coders-widget-%s-style',$style),
-                    $this->assetPathUrl($style.'.css'),
-                    $deps);
-        }
-    }
-    /**
-     * @param string $name
-     * @param array $arguments
-     */
-    /*public function __call($name, $arguments) {
-        
-        if( $name === get_class($this) ){
-        
-            $widget = $this->setup();
-
-            parent::WP_Widget(
-                    isset($widget['id']) ? $widget['id'] : self::getWidgetId(), 
-                    $widget['name'],
-                    array('description' => $widget['description']));
-        }
-        elseif(method_exists(parent, '__call')){
-            parent::__call( $name, $arguments );
-        }
-    }*/
-    /**
      * @version 1.2 Requiere del uso de la clase ReflectionClass para conocer
      * la clase invocante y procedente
      * @return string
@@ -316,6 +319,8 @@ abstract class CodersWidgetBase extends \WP_Widget {
         
         $called = new \ReflectionClass(get_called_class());
         $full_path = strtolower( $called->getFileName() );
+    
+        //normalizar (si está en local windows
         $file = explode('/', preg_replace('/\\\\/', '/', $full_path ) );
         $output = $file[ count($file) - 1 ];
         return substr($output, 0 , strrpos($output, '.' ) );
@@ -340,116 +345,105 @@ abstract class CodersWidgetBase extends \WP_Widget {
         }
     }
     /**
-     * @return string
-     */
-    protected static final function pluginPath(){
-        return __DIR__ . '/widgets';
-    }
-    /**
-     * @param string $widget
-     * @return string
-     */
-    protected static final function widgetPath( $widget = '' ){
-        
-        return sprintf('%s/widgets/%s', self::pluginPath( ) , $widget );
-    }
-    /**
-     * @param string $widget
-     * @return string
-     */
-    protected static final function widgetUrl( $widget = '' ){
-        
-        return sprintf('%s/widgets/%s', self::pluginPath( ) , $widget );
-    }
-    /**
-     * @param string $widget
-     * @return string
-     */
-    protected static final function themePath( $widget = '' ){
-
-        return sprintf( '%s/widgets/%s', get_stylesheet_directory(), $widget );
-    }
-    /**
-     * @param string $widget
-     * @return string
-     */
-    protected static final function themeUrl( $widget = '' ){
-
-        return sprintf( '%s/widgets/%s', get_stylesheet_directory(), $widget );
-    }
-    /**
      * Cargar vista del widget, si exsite una vista personalizada, la selecciona, sino, recupera la original
      * Por defecto en la carpeta del widget, pero buscará primero si existe alguna vista en el tema
      * @param string $view
      * @return string
      */
-    protected final function viewPath( $view = 'default' ){
+    protected final function getView( $view = 'default' ){
         
-        $widget_id = self::getWidgetId();
-        
-        $theme_path = self::themePath( $widget_id );
-        
-        $base_path = self::widgetPath( $widget_id );
+        $theme_path = sprintf( '%s/widgets/%s/%s.php',
+                get_stylesheet_directory(),
+                self::getWidgetId( ) , $view );
 
-        return sprintf('%s/html/%s.php' ,
-                file_exists( $theme_path ) ? $theme_path : $base_path ,
-                $view );
+        return file_exists( $theme_path ) ?
+                //busca una plantilla personalizada en el tema
+                $theme_path :
+                //busca una plantilla en la carpeta del widget
+                WidgetManager::widgetView(self::getWidgetId(), $view);
+    }
+    /**
+     * @param string $asset
+     * @return string
+     */
+    protected static final function basePath( $asset ){
+        return sprintf('%s/widgets/%s/%s',
+                __DIR__,
+                self::getWidgetId(), $asset );
+    }
+    /**
+     * @param string $asset
+     * @return string
+     */
+    protected static final function themePath( $asset ){
+        return sprintf('%s/widgets/%s/%s',
+                get_stylesheet_directory(),
+                self::getWidgetId() , $asset );
+    }
+    /**
+     * @param string $asset
+     * @return string
+     */
+    protected static final function baseUrl( $asset ){
+        return sprintf('%s/widgets/%s/%s',
+                plugin_dir_url(__FILE__),
+                self::getWidgetId() , $asset );
+    }
+    /**
+     * @param string $asset
+     * @return string
+     */
+    protected static final function themeUrl( $asset ){
+        return sprintf('%s/widgets/%s/%s',
+                get_stylesheet_directory_uri(),
+                self::getWidgetId() , $asset );
     }
     /**
      * Ruta del asset solicitado, estilo, script, ...
      * @param string $asset
      * @return string
      */
-    protected static function assetPath( $asset ){
+    protected final function getAsset( $asset ){
 
-        $widget_id = self::getWidgetId();
+        $theme_path = self::themePath($asset);
         
-        $theme_path = self::themePath( $widget_id );
+        $base_path = self::basePath($asset);
         
-        $base_path = self::widgetPath( $widget_id );
-        
-        return sprintf('%s/assets/%s',
-                file_exists($theme_path) ? $theme_path : $base_path ,
-                $asset );
-    }
-    /**
-     * @param string $asset
-     */
-    protected static function assetUrl( $asset ){
-
-        $widget_id = self::getWidgetId();
-        
-        $theme_path = self::themePath( $widget_id );
-        $theme_url = self::themeUrl( $widget_id );
-        $base_url = self::widgetUrl( $widget_id );
-        
-        return sprintf('%s/%s',
-                file_exists($theme_path) ? $theme_url : $base_url,
-                $asset);
+        return file_exists($theme_path) ?
+                //busca un recurso personalizado en el tema
+                $theme_path :
+                //busca un recurso personalizado en la carpeta del widget
+                $base_path;
     }
     /**
      * URL de estilos y scripts del widget, estilo, script, ...
      * @param string $asset
      * @return string
      */
-    protected final function assetPathUrl( $asset , $widassetPath = true ){
+    protected final function getAssetUrl( $asset ){
+                
+        $theme_path = self::themePath($asset);
         
-        //probar primero a localizar un script o asset personalizado
+        $theme_url = self::themeUrl($asset);
         
-        return WidgetManager::assetPathUrl($asset, $widassetPath ? self::getWidgetId() : null );
+        $base_url = self::baseUrl($asset);
+        
+        return file_exists($theme_path) ? $theme_url : $base_url;
     }
     /**
      * Lista los archivos de tipo en el directorio de personalizaciones del tema
      * @param string $file_type
      * @return array
      */
-    protected final function listThemeViews( $file_type = 'php' ){
+    protected final function listThemeDir( $file_type = 'php' ){
 
         $output = array();
-        $widget_id = self::getWidgetId( );
-        $theme_path = self::themePath($widget_id);
-
-        if ( strlen($file_type) > 0 && file_exists($theme_path) && $handle = opendir($theme_path)) {
+        
+        $theme_dir = sprintf('%s/widgets/%s/',
+                get_stylesheet_directory(),
+                self::getWidgetId( ) );
+        
+        if ( strlen($file_type) > 0 && file_exists($theme_dir) && $handle = opendir($theme_dir)) {
             
             while (false !== ($file = readdir($handle)))
             {
@@ -457,7 +451,7 @@ abstract class CodersWidgetBase extends \WP_Widget {
                     $file_name = substr($file, 0 , $offset );
                     $output[ $file_name ] = sprintf('%s ( %s )',
                             $file_name ,
-                            __('Custom View','coders_widget_pack'));
+                            __('Vista personalizada','coders_widget_pack'));
                 }
             }
             closedir($handle);
@@ -470,13 +464,13 @@ abstract class CodersWidgetBase extends \WP_Widget {
      * @param string $file_type
      * @return array
      */
-    protected final function listWidgetViews( ){
+    protected final function listViewDir( ){
 
         $output = array();
-        $widget_id = self::getWidgetId( );
-        $html_path = sprintf('%s/html', self::widgetPath($widget_id) );
+        
+        $html_dir = $this->getAsset(sprintf('widgets/%s/html',self::getWidgetId()));
 
-        if ( file_exists($html_path) && $handle = opendir($html_path)) {
+        if ( file_exists($html_dir) && $handle = opendir($html_dir)) {
             
             while (false !== ($file = readdir($handle)))
             {
@@ -501,6 +495,7 @@ abstract class CodersWidgetBase extends \WP_Widget {
      * @return WidgetBase
      */
     protected final function inputRegister( $input , $type = self::TYPE_TEXT , $value = '' , $label = '', $description = '', array $options = null ){
+     
         if( !array_key_exists($input, $this->_inputs)){
             $this->_inputs[ $input ] = array(
                 'name' => $input,
@@ -516,7 +511,9 @@ abstract class CodersWidgetBase extends \WP_Widget {
             
             if( $type === self::TYPE_MEDIA || $type === self::TYPE_MEDIA_LIST ){
                 //si es un input multimedia, incluir directamente las scripts y estilos requeridos
-                $this->registerAdminScript('media-gallery',array('jquery'))
+                $this->registerAdminScript(
+                        'media-gallery',
+                        array('jquery'))
                         ->registerAdminStyle('media-gallery');
             }
         }
@@ -537,79 +534,59 @@ abstract class CodersWidgetBase extends \WP_Widget {
     protected function inputDisplay( $input , $type , $value , array $meta = array() ){
         switch( $type ){
             case self::TYPE_CHECKBOX:
-                $checkbox = array(
-                        'type'=>'checkbox',
-                        'name'=>$this->get_field_name($input),
-                        'id'=>$this->get_field_id($input),
-                        'value'=>1,
-                        'style'=>'float:right;');
-                if(intval($value) > 0 ){
-                    $checkbox['checked'] = 'checked';
-                }
-                print self::__HTML('button', $checkbox );
+                printf('<input type="checkbox" name="%s" id="%s" value="1" %s style="float:right;" />',
+                        $this->get_field_name($input),
+                        $this->get_field_id($input),
+                        intval( $value ) > 0 ? 'checked' : '');
                 break;
-            case self::TYPE_MEDIA:
+            case self::TYPE_MEDIA: //solo un spinner para acceder al ID de adjunto, extender en resto de widgets si interesa
+                //dejar que el script adjunto inicialize el contenido del input
                 $att_url = $value > 0 ? wp_get_attachment_url( $value ) : false;
-                $image = ( $att_url !== false ) ?
-                        self::__HTML('img', array('src'=>$att_url,'alt'=>get_the_title($value))) :
-                        self::__HTML('span', array('class'=>'empty'),'<!-- media-not-found -->');
-                print self::__HTML('button', array(
-                    'class' => 'media-selector widefat ' . (intval($value) > 0 ? 'selected' : '' ),
-                    'id' => $this->get_field_id($input),
-                    'name' => $this->get_field_name($input),
-                    'value' => $value
-                ), $image);
-                print self::__HTML('script', array(
-                    'type' => 'text/javascript',
-                ), sprintf( 'new codersMediaController("%s","%s")' ,
-                        $this->get_field_id( $input ) ,
-                        $this->get_field_name( $input ) ) );
+                $image = $att_url !== false ? sprintf('<img src="%s" alt="%s" />',
+                        $att_url , get_the_title($value)) :
+                        '<span class="empty"><!-- media-not-found --></span>';
+                printf( '<button class="media-selector widefat %s" id="%s" name="%s" value="%s">%s</button>',
+                        intval($value) > 0 ? 'selected' : '',
+                        $this->get_field_id($input),
+                        $this->get_field_name($input),
+                        $value , $image );
+                printf('<script type="text/javascript">new codersMediaController("%s","%s")</script>',
+                        $this->get_field_id($input),
+                        $this->get_field_name($input));
                 break;
             case self::TYPE_MEDIA_LIST:
+                //dejar que el script adjunto inicialize el contenido del input
+                printf( '<ul class="media-selector multiple" id="%s" name="%s">',
+                        $this->get_field_id($input),
+                        $this->get_field_name($input));
                 if( !is_array($value) ){
-                    //printf('<!--%s-->',$value);
+                    //convertir en array y luego comprobar que el primer item contiene un valor
+                    printf('<!--%s-->',$value);
                     $value = explode(self::INPUT_ARRAY_SEPARATOR, $value);
                 }
-                $input_name = $this->get_field_name($input);
-                $input_id = $this->get_field_id($input);
-                $media_list = [];
                 if(strlen($value[0])){
+                    //luego iterear para renderizar la galería
                     foreach( $value as $item ){
-                        $item_id = self::__HTML('input', array(
-                                    'type'=>'hidden',
-                                    'name'=>$this->get_field_name($input).'[]',
-                                    'value'=>$item));
-                        $item_img = self::__HTML('img', array(
-                            'src'=>wp_get_attachment_url($item),
-                            'alt'=> get_the_title($item)));
-                        $media_list[] = self::__HTML('li',
-                                array('class'=>'media-item'),
-                                $item_id . $item_img );
+                        printf('<li class="media-item">%s%s</li>',
+                                sprintf('<input type="hidden" name="%s[]" value="%s" />',
+                                        $this->get_field_name($input),$item),
+                                sprintf('<img src="%s" alt="%s" />',
+                                        wp_get_attachment_url($item),get_the_title($item)));
                     }
                 }
-                print self::__HTML('ul', array(
-                    'class'=>'media-selector multiple',
-                    'id'=>$input_id,
-                    'name'=>$input_name),
-                    $media_list);
-                print self::__HTML('script',
-                        array( 'type' => 'text/havascript' ),
-                        sprintf('new codersMediaController("%s","%s")',$input_id,$input_name));
+                printf('</ul><script type="text/javascript">new codersMediaController("%s","%s")</script>',
+                        $this->get_field_id($input),
+                        $this->get_field_name($input));
                 break;
             case self::TYPE_FLOAT:
             case self::TYPE_NUMBER:
-                $number = array(
-                    'type' => 'number',
-                    'name' => $this->get_field_name($input),
-                    'id' => $this->get_field_id($input),
-                    'value' => $value,
-                    'step' => isset( $meta['step']) ? $meta['step'] : 1,
-                    'min' => isset( $meta['min']) ? $meta['min'] : 0,
-                );
-                if( isset( $meta['max'])){
-                    $number['max'] = $meta['max'];
-                }
-                print self::__HTML( 'input', $number);
+                printf('<input type="number" name="%s" id="%s" value="%s" step="%s" min="%s" %s class="widefat" />',
+                        $this->get_field_name($input),
+                        $this->get_field_id($input),
+                        $value,
+                        isset($meta['step']) ? $meta['step'] : 1,
+                        isset($meta['min']) ? $meta['min'] : 0,
+                        isset($meta['max']) ? sprintf('max="%s"',$meta['max']) : '');
                 break;
             case self::TYPE_SELECT:
                 if( count( $option_list = $this->getOptions($input) ) ){
@@ -625,10 +602,7 @@ abstract class CodersWidgetBase extends \WP_Widget {
                     print '</select>';
                 }
                 else{
-                    print self::__HTML( 'i', array(
-                        'class' => 'widefat alignright',
-                        'style' => 'float: right;'
-                    ), $value);
+                    printf('<i class="widefat alignright" style="float: right;">%s</i>',$value);
                 }
                 break;
             case self::TYPE_PASSWORD:
@@ -654,11 +628,13 @@ abstract class CodersWidgetBase extends \WP_Widget {
                 break;
             case self::TYPE_TEXT:
             default:
-                printf('<input type="text" name="%s" id="%s" value="%s" class="widefat" %s />',
-                        $this->get_field_name($input),
-                        $this->get_field_id($input),
+                print self::__HTML( 'input', array(
+                        'type'=>'text',
+                        'name'=>$this->get_field_name($input),
+                        'id' => $this->get_field_id($input),
                         $value,
-                        isset($meta['placeholder']) ? sprintf('placeholder="%s"',$meta['placeholder']) : '');
+                        'placeholder' => isset($meta['placeholder']) ? sprintf('placeholder="%s"',$meta['placeholder']) : ''
+                    ));
                 break;
         }
     }
@@ -788,3 +764,313 @@ abstract class CodersWidgetBase extends \WP_Widget {
      */
     abstract protected function display( $instance , $args = null );
 }
+
+/**
+ * 
+ */
+final class Manager{
+    
+    const WIDGET_LIST_OPTION = 'coders_widget_pack_widgets';
+    
+    const STATUS_ACTIVE = 'active';
+    const STATUS_INACTIVE = 'inactive';
+    const STATUS_INVALID = 'disabled';
+    
+    private static $_INSTANCE = null;
+    
+    private $_updated = FALSE;
+    
+    private $_widgets = array();
+    
+    private final function __construct() {
+        
+        //register action 
+        $this->preload()->setupAdmin();
+        //add_action( 'init' , array( $this , 'preload' ) );
+    }
+    /**
+     * @return string
+     */
+    private static final function pluginPath(){
+    
+        return preg_replace('/\\\\/', '/', __DIR__);
+    }
+    /**
+     * @return String|URL
+     */
+    public static final function pluginUrl(){
+        
+        return plugin_dir_url(__FILE__);
+    }
+    /**
+     * @param string $widget
+     * @return string
+     */
+    private static final function widgetClass( $widget ){
+
+        $classParts = explode('-', $widget);
+
+        $class = '';
+
+        foreach( $classParts as $chunk ){
+
+            $class .= strtoupper( substr( $chunk , 0 , 1 ) )
+                    . strtolower(substr($chunk, 1, strlen($chunk)-1));
+        }
+        
+        return sprintf('Coders%sWidget', $class );
+    }
+    /**
+     * Comprueba que existe un widget
+     * @param string $widget
+     * @return boolean
+     */
+    public static final function checkWidget( $widget ){
+        
+        return file_exists( sprintf( '%s/%s' , self::pluginPath( ) , $widget ) );
+    }
+    /**
+     * @return array
+     */
+    private final function importWidgetDir(){
+
+        $path = sprintf('%s/widgets/',self::pluginPath());
+        //var_dump($path);
+        $output = array();
+        if ( file_exists($path) && $handle = opendir( $path ) ) {
+                while ( FALSE !== ( $widget = readdir($handle))){
+                    switch( $widget ){
+                        case '.':
+                        case '..':
+                            break;
+                        default:
+                            $output[] = $widget;
+                            break;
+                    }
+                }
+        }
+        
+        return $output;
+    }
+    /**
+     * @return array
+     */
+    private final function importSetup(){
+
+        $import = get_option( self::WIDGET_LIST_OPTION , '' );
+        
+        if(strlen($import)){            
+            $extract = base64_decode($import);
+            $decode = json_decode($extract,TRUE);
+            //var_dump($decode);
+            return is_array($decode) ? $decode : array();
+        }
+        
+        return array();
+    }
+    /**
+     * @param string $widget
+     * @return string
+     */
+    public final function status( $widget){
+        if( array_key_exists($widget, $this->_widgets) ){
+            return $this->_widgets[$widget] ?
+                    self::STATUS_ACTIVE :
+                    self::STATUS_INACTIVE;
+        }
+        return self::STATUS_INVALID;
+    }
+    /**
+     * @param string $widget
+     * @param boolean $status
+     * @return \CODERS\Widgets\Manager
+     */
+    public final function toggle( $widget ){
+        
+        if(array_key_exists($widget, $this->_widgets)){
+
+            $this->_widgets[$widget] = !$this->_widgets[ $widget ];
+
+            $this->_updated = TRUE;
+        }
+        return $this;
+    }
+    /**
+     * @return \CODERS\Widgets\Manager
+     */
+    public final function exportSetup(){
+        if( $this->_updated){
+            //exporta los widgets activos
+            $export = json_encode($this->widgets());
+            //guarda la lista serializada en options
+            update_option( self::WIDGET_LIST_OPTION , base64_encode($export));
+            $this->_updated = false;
+        }
+        return $this;
+    }
+    /**
+     * @return array
+     */
+    public final function listWidgets(){
+        
+        $widgets = array();
+        
+        foreach( $this->widgets(false) as $widget_id => $active ){
+            $class = self::widgetClass($widget_id);
+            $name = class_exists($class) ? $class::defineWidgetTitle() : $class;
+            $widgets[ $widget_id ] = array(
+                'name' => $name,
+                'status' => $active ? self::STATUS_ACTIVE : self::STATUS_INACTIVE
+            );
+        }
+        
+        return $widgets;
+    }
+    /**
+     * @param boolean $activeOnly
+     * @return array
+     */
+    public final function widgets( $activeOnly = true ){
+        if( $activeOnly ){
+            $output = array();
+            foreach( $this->_widgets as $widget => $status){
+                if( $status ){
+                    $output[] = $widget;
+                }
+            }
+            return $output;
+        }
+        
+        return $this->_widgets;
+    }
+    /**
+     * @param string $widget
+     * @param boolean $register
+     * @return boolean
+     */
+    private final function importWidget( $widget , $register = FALSE ){
+
+        $class = self::widgetClass($widget);
+        
+        $path = sprintf('%s/widgets/%s/%s.php',self::pluginPath(),$widget,$widget);
+        //var_dump($class);
+        //var_dump($path);
+        if(strlen($class) && file_exists($path)){
+            
+            require_once $path;
+
+            if( class_exists($class) && is_subclass_of($class, WidgetBase::class ) ){
+
+                if( $register ){
+
+                    add_action( 'widgets_init', function() use( $class ){
+
+                        register_widget( $class );
+                    } );
+                }
+                
+                return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
+    /**
+     * @return \CODERS\Widgets\Manager
+     */
+    private final function setupAdmin(){
+        if(is_admin()){
+            add_action('admin_menu',function(){
+                /*add_menu_page(
+                        __('Coder Widgets', 'coders_widgets' ),
+                        __('Coder Widgets', 'coders_widgets' ),
+                        'administrator', 'coder-widgets',
+                        function(){
+                            //var_dump(\CODERS\Widgets\Manager::instance()->widgets(FALSE));
+                            printf('<h2>%s</h2><div id="coder-widget-manager"></div>',
+                                    __('Coder Widget Manager','coders_widgets'));
+                        },
+                        'dashicons-welcome-widgets-menus', 50 );*/
+                add_submenu_page('themes.php',
+                        __('Coder Widgets', 'coders_widgets' ),
+                        __('Coder Widgets', 'coders_widgets' ),
+                        'administrator', 'coder-widgets',
+                        function(){
+                            //var_dump(\CODERS\Widgets\Manager::instance()->widgets(FALSE));
+                            printf('<h2>%s</h2><div id="coder-widget-manager"></div>',
+                                    __('Coder Widget Manager','coders_widgets'));
+                        }, 100 );
+            });
+
+            add_action( 'admin_enqueue_scripts', function(){
+                $url = \CODERS\Widgets\Manager::pluginUrl();
+                wp_enqueue_script( 'mnk-widgets-script', sprintf('%s/widget-manager.js',$url), array('jquery'), '1.0.0' );
+                wp_enqueue_style( 'mnk-widgets-css', sprintf('%s/widget-manager.css',$url), false, '1.0.0' );
+            } );
+
+            add_action( 'wp_ajax_coder_widget_list',  function(){
+                $widgets = \CODERS\Widgets\Manager::instance()->listWidgets( );
+                print json_encode($widgets);
+                wp_die();
+            } );
+
+            add_action( 'wp_ajax_coder_widget_toggle',  function(){
+                $request = filter_input_array(INPUT_POST);
+                header('Content-Type: application/json');
+                if( !is_null($request) && isset( $request[ 'widget' ] ) ){
+                    $status = \CODERS\Widgets\Manager::instance( )
+                            ->toggle( $request['widget'] ) //change
+                            ->exportSetup()                 //save
+                            ->status( $request['widget'] ); // extract
+                    print json_encode(array(
+                        'widget' => $request['widget'],
+                        'status' => $status,
+                        //'list' => \CODERS\Widgets\Manager::instance()->widgets(FALSE)
+                    ) );
+                }
+                else{
+                    print json_encode($request);
+                }
+                wp_die();
+            } );
+        }
+        return $this;
+    }
+    /**
+     * @return \CODERS\Widgets\Manager
+     */
+    private final function preload(){
+
+        if(count($this->_widgets) === 0 ){
+            
+            $active_list = $this->importSetup();
+
+            $widget_list = $this->importWidgetDir();
+            
+            foreach( $widget_list as $widget ){
+                $active = in_array($widget, $active_list);
+                if( $this->importWidget($widget, $active ) ){
+                    $this->_widgets[$widget] = $active;
+                }
+            }
+        }
+        return $this;
+    }
+    /**
+     * @return \CODERS\Widgets\Manager
+     */
+    public static final function instance(){
+        
+        if(is_null(self::$_INSTANCE)){
+
+            self::$_INSTANCE = new Manager();
+        }
+        
+        return self::$_INSTANCE;
+    }
+}
+
+Manager::instance();
+//WidgetBase::preload();
+
+

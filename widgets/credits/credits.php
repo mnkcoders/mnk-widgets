@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersCreditsWidget extends \CODERS\WidgetBase{
+class CodersCreditsWidget extends \CODERS\Widgets\WidgetBase{
     
     const DISPLAY_ALL = 'all';
     const DISPLAY_OWNER_DEV = 'owner_dev';

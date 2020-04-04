@@ -4,7 +4,7 @@
  * @author Jaume Llopis <jaume@mnkcoders.com>
  * @version 2018-11-11
  */
-class CodersImageWidget extends \CODERS\WidgetBase{
+class CodersImageWidget extends \CODERS\Widgets\WidgetBase{
 
     const SIZE_THUMBNAIL = 'thumbnail';
     const SIZE_MEDIUM = 'medium';
